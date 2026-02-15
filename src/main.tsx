@@ -7,12 +7,12 @@ import { AppProvider } from "./context/AppContext.tsx";
 import "leaflet/dist/leaflet.css";
 import { SocketProvider } from "./context/SocketContext.tsx";
 
-export const authService = "https://auths-ztk3.onrender.com";
-export const restaurantService = "https://restaurantjanuary.onrender.com";
-export const utilsService = "https://utilsjanuary.onrender.com";
-export const realtimeService = "https://realtimejanuary.onrender.com";
-export const riderService = "https://riderjanuary.onrender.com";
-export const adminService = "https://adminjanuary.onrender.com";
+export const authService = "https://auths-gules.vercel.app";
+export const restaurantService = "https://restaurantjanuary.vercel.app";
+export const utilsService = "https://utilsjanuary-6awg.vercel.app";
+export const realtimeService = "https://realtimejanuary.vercel.app";
+export const riderService = "https://riderjanuary-8bxg.vercel.app";
+export const adminService = "https://adminjanuary.vercel.app";
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
