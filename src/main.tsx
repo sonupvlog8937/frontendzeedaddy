@@ -8,7 +8,7 @@ import "leaflet/dist/leaflet.css";
 import { SocketProvider } from "./context/SocketContext.tsx";
 
 export const authService = "https://auths-ztk3.onrender.com";
-export const restaurantService = "https://restaurantjanuary.onrender.com";
+export const restaurantService = "https://restaurantjanuary-1.onrender.com";
 export const utilsService = "https://utilsjanuary.onrender.com";
 export const realtimeService = "https://realtimejanuary.onrender.com";
 export const riderService = "https://riderjanuary.onrender.com";
