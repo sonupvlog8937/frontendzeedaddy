@@ -105,7 +105,7 @@ const RiderOrderMap = ({ order }: Props) => {
         (err) => console.log("Location Error:", err),
         {
           enableHighAccuracy: true,
-          maximumAge: 5000,
+          maximumAge: 60000,
           timeout: 10000,
         }
       );
