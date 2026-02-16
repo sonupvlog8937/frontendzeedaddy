@@ -69,9 +69,9 @@ const Checkout = () => {
 
   const restaurant = cart[0].restaurantId as IRestaurant;
 
-  const deliveryFee = subTotal < 250 ? 49 : 0;
+  const deliveryFee = subTotal < 250 ? 0 : 0;
 
-  const platformFee = 7;
+  const platformFee = 0;
 
   const grandTotal = subTotal + deliveryFee + platformFee;
 
