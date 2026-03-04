@@ -24,6 +24,9 @@ export interface AppContextType {
   location: LocationData | null;
   loadingLocation: boolean;
   city: string;
+  locationPermissionAsked: boolean;
+  requestCurrentLocation: () => Promise<void>;
+  setManualLocation: (manualAddress: string) => Promise<void>;
   cart: ICart[] | null;
   fetchCart: () => Promise<void>;
   subTotal: number;
