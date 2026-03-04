@@ -1,5 +1,5 @@
 import axios from "axios";
-import { type FormEvent, useState } from "react";
+import { useState, type FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
 import { authService } from "../main";
 import toast from "react-hot-toast";
@@ -7,72 +7,42 @@ import { useGoogleLogin } from "@react-oauth/google";
 import { FcGoogle } from "react-icons/fc";
 import { useAppData } from "../context/AppContext";
 
-type AuthMode = "signin" | "signup";
+type Mode = "login" | "signup";
 
 const Login = () => {
   const [loading, setLoading] = useState(false);
-  const [authMode, setAuthMode] = useState<AuthMode>("signin");
-  const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+  const [mode, setMode] = useState<Mode>("login");
+  const [form, setForm] = useState({
+    name: "",
+    email: "",
+    password: "",
+  });
+
   const navigate = useNavigate();
 
   const { setUser, setIsAuth } = useAppData();
 
-   const postToAvailableEndpoint = async <T,>(
-    endpoints: string[],
-    payload: Record<string, unknown>
-  ): Promise<T> => {
-    let lastError: unknown;
-
-    for (const endpoint of endpoints) {
-      try {
-        const response = await axios.post<T>(endpoint, payload);
-        return response.data;
-      } catch (error) {
-        lastError = error;
-      }
-    }
-
-    throw lastError ?? new Error("Authentication route unavailable");
+  const updateForm = (key: "name" | "email" | "password", value: string) => {
+    setForm((prev) => ({ ...prev, [key]: value }));
   };
 
-  const completeLogin = (payload: {
-    token: string;
-    message?: string;
-    user: {
-      _id: string;
-      name: string;
-      email: string;
-      image: string;
-      role: string;
-    };
-  }) => {
-    localStorage.setItem("token", payload.token);
-    toast.success(payload.message || "Authentication successful");
-    setUser(payload.user);
-    setIsAuth(true);
-    navigate("/");
+  const finishAuth = (result: any) => {
+    finishAuth(result);
   };
 
-  const responseGoogle = async (authResult: { code?: string }) => {
+  const responseGoogle = async (authResult: any) => {
     setLoading(true);
     try {
-      const result = await postToAvailableEndpoint<{
-        token: string;
-        message?: string;
-        user: {
-          _id: string;
-          name: string;
-          email: string;
-          image: string;
-          role: string;
-        };
-      }>([`${authService}/api/auth/login`, `${authService}/api/auth/signin`], {
-        code: authResult.code,
+      const result = await axios.post(`${authService}/api/auth/login`, {
+        code: authResult["code"],
       });
 
-      completeLogin(result);
+      localStorage.setItem("token", result.data.token);
+      toast.success(result.data.message);
+      setLoading(false);
+      setUser(result.data.user);
+      setIsAuth(true);
+      navigate("/");
     } catch (error) {
       console.log(error);
       toast.error("Problem while login");
@@ -81,155 +51,108 @@ const Login = () => {
     }
   };
 
-  const googleLogin = useGoogleLogin({
-    onSuccess: responseGoogle,
-     onError: () => {
-      toast.error("Google login failed");
-    },
-    flow: "auth-code",
-  });
-
-  const handleEmailAuth = async (e: FormEvent<HTMLFormElement>) => {
+  const handleManualSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+
+    if (!form.email || !form.password || (mode === "signup" && !form.name)) {
+      toast.error("Please fill all required fields");
+      return;
+    }
+
     setLoading(true);
-
     try {
-      if (authMode === "signup") {
-        const signupPayload = { name, email, password };
+      const endpoint =
+        mode === "signup" ? "/api/auth/signup" : "/api/auth/manual-login";
+      const payload =
+        mode === "signup"
+          ? form
+          : { email: form.email, password: form.password };
 
-         const signupResult = await postToAvailableEndpoint<{
-          token: string;
-          message?: string;
-          user: {
-            _id: string;
-            name: string;
-            email: string;
-            image: string;
-            role: string;
-          };
-        }>(
-          [`${authService}/api/auth/signup`, `${authService}/api/auth/register`],
-          signupPayload
-        );
-
-        completeLogin(signupResult);
-        return;
-      }
-
-      const signInResult = await postToAvailableEndpoint<{
-        token: string;
-        message?: string;
-        user: {
-          _id: string;
-          name: string;
-          email: string;
-          image: string;
-          role: string;
-        };
-      }>(
-        [
-          `${authService}/api/auth/login`,
-          `${authService}/api/auth/signin`,
-          `${authService}/api/auth/sign-in`,
-        ],
-        {
-          email,
-          password,
-        }
-      );
-      completeLogin(signInResult);
-    } catch (error) {
+      const result = await axios.post(`${authService}${endpoint}`, payload);
+      finishAuth(result);
+    } catch (error: any) {
       console.log(error);
-      toast.error(
-        authMode === "signup"
-          ? "Unable to sign up with email/password"
-          : "Unable to sign in with email/password"
-      );
+      toast.error(error?.response?.data?.message || "Authentication failed");
     } finally {
       setLoading(false);
     }
   };
 
+  const googleLogin = useGoogleLogin({
+    onSuccess: responseGoogle,
+    onError: responseGoogle,
+    flow: "auth-code",
+  });
   return (
     <div className="flex min-h-screen items-center justify-center bg-white px-4">
-      <div className="w-full max-w-sm space-y-5 rounded-2xl border border-gray-100 p-6 shadow-sm">
+       <div className="w-full max-w-sm space-y-6 rounded-2xl border border-gray-200 p-6 shadow-sm">
         <h1 className="text-center text-3xl font-bold text-[#E23774]">Tomato</h1>
 
-        <p className="text-center text-sm text-gray-500">
-        Continue with Google or use email/password
-        </p>
-
-        <div className="grid grid-cols-2 rounded-lg bg-gray-100 p-1 text-sm">
+       <div className="grid grid-cols-2 gap-2 rounded-xl bg-gray-100 p-1">
           <button
-            onClick={() => setAuthMode("signin")}
-            className={`rounded-md py-2 font-medium ${
-              authMode === "signin" ? "bg-white text-[#E23744] shadow" : "text-gray-600"
+            type="button"
+            onClick={() => setMode("login")}
+            className={`rounded-lg py-2 text-sm font-medium ${
+              mode === "login" ? "bg-white text-[#E23774] shadow" : "text-gray-600"
             }`}
           >
-            Sign In
+            Login
           </button>
           <button
-            onClick={() => setAuthMode("signup")}
-            className={`rounded-md py-2 font-medium ${
-              authMode === "signup" ? "bg-white text-[#E23744] shadow" : "text-gray-600"
+            type="button"
+            onClick={() => setMode("signup")}
+            className={`rounded-lg py-2 text-sm font-medium ${
+              mode === "signup" ? "bg-white text-[#E23774] shadow" : "text-gray-600"
             }`}
           >
             Sign Up
           </button>
         </div>
 
-        <form onSubmit={handleEmailAuth} className="space-y-3">
-          {authMode === "signup" && (
+        <form className="space-y-3" onSubmit={handleManualSubmit}>
+          {mode === "signup" && (
             <input
               type="text"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="Full name"
-              required
-              className="w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm outline-none focus:border-[#E23744]"
+              placeholder="Full Name"
+              className="w-full rounded-xl border border-gray-300 px-4 py-3 outline-none focus:border-[#E23774]"
+              value={form.name}
+              onChange={(e) => updateForm("name", e.target.value)}
             />
           )}
           <input
             type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            placeholder="Email address"
-            required
-            className="w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm outline-none focus:border-[#E23744]"
+            placeholder="Email"
+            className="w-full rounded-xl border border-gray-300 px-4 py-3 outline-none focus:border-[#E23774]"
+            value={form.email}
+            onChange={(e) => updateForm("email", e.target.value)}
           />
           <input
             type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
             placeholder="Password"
-            required
-            className="w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm outline-none focus:border-[#E23744]"
+            className="w-full rounded-xl border border-gray-300 px-4 py-3 outline-none focus:border-[#E23774]"
+            value={form.password}
+            onChange={(e) => updateForm("password", e.target.value)}
           />
-
           <button
             type="submit"
             disabled={loading}
-            className="w-full rounded-xl bg-[#E23744] px-4 py-3 text-sm font-semibold text-white hover:bg-[#ca2f3c] disabled:opacity-70"
+            className="w-full rounded-xl bg-[#E23774] px-4 py-3 font-medium text-white"
           >
             {loading
               ? "Please wait..."
-              : authMode === "signup"
-                ? "Create account"
-                : "Sign in"}
+              : mode === "signup"
+              ? "Create Account"
+              : "Login"}
           </button>
         </form>
 
-        <div className="relative">
-          <div className="absolute inset-0 flex items-center">
-            <div className="w-full border-t border-gray-200" />
-          </div>
-          <div className="relative flex justify-center text-xs uppercase">
-            <span className="bg-white px-2 text-gray-400">OR</span>
-          </div>
+        <div className="flex items-center gap-2">
+          <div className="h-px flex-1 bg-gray-200" />
+          <span className="text-xs text-gray-400">OR</span>
+          <div className="h-px flex-1 bg-gray-200" />
         </div>
-
         <button
-           onClick={() => googleLogin()}
+          onClick={googleLogin}
           disabled={loading}
           className="flex w-full items-center justify-center gap-3 rounded-xl border border-gray-300 bg-white px-4 py-3"
         >
