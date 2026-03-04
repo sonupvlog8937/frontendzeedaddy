@@ -19,7 +19,25 @@ const Login = () => {
 
   const { setUser, setIsAuth } = useAppData();
 
-   const completeLogin = (payload: {
+   const postToAvailableEndpoint = async <T,>(
+    endpoints: string[],
+    payload: Record<string, unknown>
+  ): Promise<T> => {
+    let lastError: unknown;
+
+    for (const endpoint of endpoints) {
+      try {
+        const response = await axios.post<T>(endpoint, payload);
+        return response.data;
+      } catch (error) {
+        lastError = error;
+      }
+    }
+
+    throw lastError ?? new Error("Authentication route unavailable");
+  };
+
+  const completeLogin = (payload: {
     token: string;
     message?: string;
     user: {
@@ -40,11 +58,21 @@ const Login = () => {
   const responseGoogle = async (authResult: { code?: string }) => {
     setLoading(true);
     try {
-      const result = await axios.post(`${authService}/api/auth/login`, {
+      const result = await postToAvailableEndpoint<{
+        token: string;
+        message?: string;
+        user: {
+          _id: string;
+          name: string;
+          email: string;
+          image: string;
+          role: string;
+        };
+      }>([`${authService}/api/auth/login`, `${authService}/api/auth/signin`], {
         code: authResult.code,
       });
 
-      completeLogin(result.data);
+      completeLogin(result);
     } catch (error) {
       console.log(error);
       toast.error("Problem while login");
@@ -69,35 +97,47 @@ const Login = () => {
       if (authMode === "signup") {
         const signupPayload = { name, email, password };
 
-        const signupEndpoints = [
-          `${authService}/api/auth/signup`,
-          `${authService}/api/auth/register`,
-        ];
+         const signupResult = await postToAvailableEndpoint<{
+          token: string;
+          message?: string;
+          user: {
+            _id: string;
+            name: string;
+            email: string;
+            image: string;
+            role: string;
+          };
+        }>(
+          [`${authService}/api/auth/signup`, `${authService}/api/auth/register`],
+          signupPayload
+        );
 
-        let signupResult;
-
-        for (const endpoint of signupEndpoints) {
-          try {
-            signupResult = await axios.post(endpoint, signupPayload);
-            break;
-          } catch (error) {
-            continue;
-          }
-        }
-
-        if (!signupResult) {
-          throw new Error("Signup route unavailable");
-        }
-
-        completeLogin(signupResult.data);
+        completeLogin(signupResult);
         return;
       }
 
-      const signInResult = await axios.post(`${authService}/api/auth/login`, {
-        email,
-        password,
-      });
-      completeLogin(signInResult.data);
+      const signInResult = await postToAvailableEndpoint<{
+        token: string;
+        message?: string;
+        user: {
+          _id: string;
+          name: string;
+          email: string;
+          image: string;
+          role: string;
+        };
+      }>(
+        [
+          `${authService}/api/auth/login`,
+          `${authService}/api/auth/signin`,
+          `${authService}/api/auth/sign-in`,
+        ],
+        {
+          email,
+          password,
+        }
+      );
+      completeLogin(signInResult);
     } catch (error) {
       console.log(error);
       toast.error(
