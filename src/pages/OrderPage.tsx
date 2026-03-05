@@ -6,6 +6,12 @@ import axios from "axios";
 import { restaurantService } from "../main";
 import UserOrderMap from "../components/UserOrderMap";
 
+const PAYMENT_METHOD_LABEL: Record<IOrder["paymentMethod"], string> = {
+  razorpay: "Razorpay",
+  stripe: "Stripe",
+  cod: "Cash on Delivery",
+};
+
 const OrderPage = () => {
   const { id } = useParams();
   const { socket } = useSocket();
@@ -134,7 +140,7 @@ const OrderPage = () => {
         </div>
 
         <p className="text-xs text-gray-500">
-          Payment Method: {order.paymentMethod}
+           Payment Method: {PAYMENT_METHOD_LABEL[order.paymentMethod] || order.paymentMethod}
         </p>
         <p className="text-xs text-gray-500">
           Payment Status: {order.paymentStatus}

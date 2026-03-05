@@ -23,18 +23,11 @@ export const AppProvider = ({ children }: AppProviderProps) => {
 
   const [location, setLocation] = useState<LocationData | null>(null);
   const [loadingLocation, setLoadingLocation] = useState(false);
- const [locationPermissionAsked, setLocationPermissionAsked] =
-    useState(false);
-  const [city, setCity] = useState("Select Location");
-
+  const [city, setCity] = useState("Fecthing Location...");
 
   async function fetchUser() {
     try {
       const token = localStorage.getItem("token");
-
-       if (!token) {
-        return;
-      }
 
       const { data } = await axios.get(`${authService}/api/auth/me`, {
         headers: {
@@ -50,103 +43,6 @@ export const AppProvider = ({ children }: AppProviderProps) => {
       setLoading(false);
     }
   }
-
-  const requestCurrentLocation = async () => {
-    if (!navigator.geolocation) {
-      setCity("Location unavailable");
-      return;
-    }
-
-    setLocationPermissionAsked(true);
-    setLoadingLocation(true);
-
-    const resolveAddress = async (latitude: number, longitude: number) => {
-      try {
-        const res = await fetch(
-          `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`
-        );
-        const data = await res.json();
-
-        const formattedAddress = data.display_name || "Current Location";
-
-        setLocation({
-          latitude,
-          longitude,
-          formattedAddress,
-        });
-
-        setCity(
-          data.address?.city ||
-            data.address?.town ||
-            data.address?.village ||
-            "Your Location"
-        );
-      } catch (error) {
-        setLocation({
-          latitude,
-          longitude,
-          formattedAddress: "Current Location",
-        });
-        setCity("Current Location");
-      } finally {
-        setLoadingLocation(false);
-      }
-    };
-
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        const { latitude, longitude } = position.coords;
-        resolveAddress(latitude, longitude);
-      },
-      () => {
-        setLoadingLocation(false);
-        setCity("Permission denied");
-      }
-    );
-  };
-
-  const setManualLocation = async (manualAddress: string) => {
-    const trimmedAddress = manualAddress.trim();
-
-    if (!trimmedAddress) {
-      return;
-    }
-
-    setLoadingLocation(true);
-    setLocationPermissionAsked(true);
-
-    try {
-      const searchAddress = encodeURIComponent(trimmedAddress);
-      const response = await fetch(
-        `https://nominatim.openstreetmap.org/search?format=json&q=${searchAddress}&limit=1`
-      );
-      const results = await response.json();
-
-      if (results?.length) {
-        const firstMatch = results[0];
-        const latitude = Number(firstMatch.lat);
-        const longitude = Number(firstMatch.lon);
-
-        setLocation({
-          latitude,
-          longitude,
-          formattedAddress: firstMatch.display_name || trimmedAddress,
-        });
-
-        const citySegment =
-          firstMatch.address?.city ||
-          firstMatch.address?.town ||
-          firstMatch.address?.village ||
-          trimmedAddress;
-        setCity(citySegment);
-      }
-    } catch (error) {
-      console.log(error);
-    } finally {
-      setLoadingLocation(false);
-    }
-  };
-
 
   const [cart, setCart] = useState<ICart[]>([]);
   const [subTotal, setSubTotal] = useState(0);
@@ -180,10 +76,43 @@ export const AppProvider = ({ children }: AppProviderProps) => {
   }, [user]);
 
   useEffect(() => {
-    if (isAuth && user?.role === "customer" && !locationPermissionAsked && !location) {
-      requestCurrentLocation();
-    }
-  }, [isAuth, user, locationPermissionAsked, location]);
+    if (!navigator.geolocation)
+      return alert("Please Allow Location to continue");
+    setLoadingLocation(true);
+
+    navigator.geolocation.getCurrentPosition(async (position) => {
+      const { latitude, longitude } = position.coords;
+
+      try {
+        const res = await fetch(
+          `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`
+        );
+        const data = await res.json();
+
+        setLocation({
+          latitude,
+          longitude,
+          formattedAddress: data.display_name || "current location",
+        });
+
+        setCity(
+          data.address.city ||
+            data.address.town ||
+            data.address.village ||
+            "Your Location"
+        );
+        setLoadingLocation(false);
+      } catch (error) {
+        setLocation({
+          latitude,
+          longitude,
+          formattedAddress: "Current Location",
+        });
+        setCity("Faild to load");
+        setLoadingLocation(false);
+      }
+    });
+  }, []);
 
   return (
     <AppContext.Provider
@@ -197,9 +126,6 @@ export const AppProvider = ({ children }: AppProviderProps) => {
         location,
         loadingLocation,
         city,
-        locationPermissionAsked,
-        requestCurrentLocation,
-        setManualLocation,
         cart,
         fetchCart,
         quauntity,

@@ -24,9 +24,6 @@ export interface AppContextType {
   location: LocationData | null;
   loadingLocation: boolean;
   city: string;
-  locationPermissionAsked: boolean;
-  requestCurrentLocation: () => Promise<void>;
-  setManualLocation: (manualAddress: string) => Promise<void>;
   cart: ICart[] | null;
   fetchCart: () => Promise<void>;
   subTotal: number;
@@ -115,7 +112,7 @@ export interface IOrder {
     | "delivered"
     | "cancelled";
 
-  paymentMethod: "razorpay" | "stripe";
+  paymentMethod: "razorpay" | "stripe" | "cod";
   paymentStatus: "pending" | "paid" | "failed";
 
   expiresAt: Date;

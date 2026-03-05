@@ -34,6 +34,8 @@ const OrderCard = ({ order, onStatusUpdate }: props) => {
   const [retryVisible, setRetryVisible] = useState(false);
 
   const actions = ORDER_ACTIONS[order.status] || [];
+  const canProcessOrder =
+    order.paymentStatus === "paid" || order.paymentMethod === "cod";
 
   useEffect(() => {
     if (order.status !== "ready_for_rider") {
@@ -97,9 +99,11 @@ const OrderCard = ({ order, onStatusUpdate }: props) => {
         <span>₹{order.totalAmount}</span>
       </div>
 
-      <p className="text-xs text-gray-400">Payment: {order.paymentStatus}</p>
+      <p className="text-xs text-gray-400">
+        Payment: {order.paymentMethod === "cod" ? "Cash on Delivery" : order.paymentStatus}
+      </p>
 
-      {order.paymentStatus === "paid" && actions.length > 0 && (
+     {canProcessOrder && actions.length > 0 && (
         <div className="flex flex-wrap gap-2 pt-2">
           {actions.map((status) => (
             <button

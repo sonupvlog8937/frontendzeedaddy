@@ -6,7 +6,10 @@ import { useNavigate } from "react-router-dom";
 import type { ICart, IMenuItem, IRestaurant } from "../types";
 import toast from "react-hot-toast";
 import { BiCreditCard, BiLoader } from "react-icons/bi";
+import { MdOutlinePayments } from "react-icons/md";
 import { loadStripe } from "@stripe/stripe-js";
+
+type PaymentMethod = "razorpay" | "stripe" | "cod";
 
 interface Address {
   _id: string;
@@ -15,16 +18,16 @@ interface Address {
 }
 
 const Checkout = () => {
-  const { cart, subTotal, quauntity } = useAppData();
+  const { cart, subTotal, quauntity, fetchCart } = useAppData();
 
   const [addresses, setAddresses] = useState<Address[]>([]);
 
   const [selectedAddressId, setselectedAddressId] = useState<string | null>(
-    null
+    null,
   );
 
   const [loadingAddress, setLoadingAddress] = useState(true);
-
+  const [loadingCod, setLoadingCod] = useState(false);
   const [loadingRazorpay, setLoadingRazorpay] = useState(false);
   const [loadingStripe, setLoadingStripe] = useState(false);
   const [creatingOrder, setCreatingOrder] = useState(false);
@@ -43,7 +46,7 @@ const Checkout = () => {
             headers: {
               Authorization: `Bearer ${localStorage.getItem("token")}`,
             },
-          }
+          },
         );
 
         setAddresses(data || []);
@@ -75,7 +78,7 @@ const Checkout = () => {
 
   const grandTotal = subTotal + deliveryFee + platformFee;
 
-  const createOrder = async (paymentMethod: "razorpay" | "stripe") => {
+  const createOrder = async (paymentMethod: PaymentMethod) => {
     if (!selectedAddressId) return null;
 
     setCreatingOrder(true);
@@ -90,7 +93,7 @@ const Checkout = () => {
           headers: {
             Authorization: `Bearer ${localStorage.getItem("token")}`,
           },
-        }
+        },
       );
 
       return data;
@@ -171,7 +174,7 @@ const Checkout = () => {
           `${utilsService}/api/payment/stripe/create`,
           {
             orderId,
-          }
+          },
         );
 
         if (data.url) {
@@ -189,6 +192,25 @@ const Checkout = () => {
       setLoadingStripe(false);
     }
   };
+
+  const placeCodOrder = async () => {
+    try {
+      setLoadingCod(true);
+
+      const order = await createOrder("cod");
+      if (!order) return;
+
+      toast.success("Order placed with Cash on Delivery 🎉");
+      await fetchCart();
+      navigate(`/order/${order.orderId}`);
+    } catch (error) {
+      console.log(error);
+      toast.error("Failed to place cash on delivery order");
+    } finally {
+      setLoadingCod(false);
+    }
+  };
+
   return (
     <div className="mx-auto max-w-4xl px-4 py-6 space-y-6">
       <h1 className="text-2xl font-bold">Checkout</h1>
@@ -280,7 +302,13 @@ const Checkout = () => {
         <h3 className="font-semibold">Payment Method</h3>
 
         <button
-          disabled={!selectedAddressId || loadingRazorpay || creatingOrder}
+          disabled={
+            !selectedAddressId ||
+            loadingRazorpay ||
+            loadingStripe ||
+            loadingCod ||
+            creatingOrder
+          }
           onClick={payWithRazorpay}
           className="flex w-full items-center justify-center gap-2 rounded-lg bg-[#2D7FF9] py-3 text-sm font-semibold text-white hover:bg-blue-500 disabled:opacity-50"
         >
@@ -293,16 +321,40 @@ const Checkout = () => {
         </button>
 
         <button
-          disabled={!selectedAddressId || loadingStripe || creatingOrder}
+          disabled={
+            !selectedAddressId ||
+            loadingRazorpay ||
+            loadingStripe ||
+            loadingCod ||
+            creatingOrder
+          }
           onClick={payWithStripe}
           className="flex w-full items-center justify-center gap-2 rounded-lg bg-black py-3 text-sm font-semibold text-white hover:bg-gray-800 disabled:opacity-50"
         >
-          {loadingRazorpay ? (
+          {loadingStripe ? (
             <BiLoader size={18} className="animate-spin" />
           ) : (
             <BiCreditCard size={18} />
           )}
           Pay With Stripe
+        </button>
+        <button
+          disabled={
+            !selectedAddressId ||
+            loadingRazorpay ||
+            loadingStripe ||
+            loadingCod ||
+            creatingOrder
+          }
+          onClick={placeCodOrder}
+          className="flex w-full items-center justify-center gap-2 rounded-lg bg-[#e23744] py-3 text-sm font-semibold text-white hover:bg-[#d32f3a] disabled:opacity-50"
+        >
+          {loadingCod ? (
+            <BiLoader size={18} className="animate-spin" />
+          ) : (
+            <MdOutlinePayments size={18} />
+          )}
+          Cash On Delivery
         </button>
       </div>
     </div>
