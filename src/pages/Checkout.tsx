@@ -1,21 +1,21 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useAppData } from "../context/AppContext";
 import axios from "axios";
 import { restaurantService, utilsService } from "../main";
 import { useNavigate } from "react-router-dom";
 import type { ICart, IMenuItem, IRestaurant } from "../types";
 import toast from "react-hot-toast";
-import { BiCreditCard, BiLoader } from "react-icons/bi";
+import { BiCreditCard, BiLoader, BiMoney } from "react-icons/bi";
 import { MdOutlinePayments } from "react-icons/md";
 import { loadStripe } from "@stripe/stripe-js";
-
-type PaymentMethod = "razorpay" | "stripe" | "cod";
 
 interface Address {
   _id: string;
   formattedAddress: string;
   mobile: number;
 }
+
+type PaymentMethod = "razorpay" | "stripe" | "cod";
 
 const Checkout = () => {
   const { cart, subTotal, quauntity, fetchCart } = useAppData();
@@ -25,6 +25,8 @@ const Checkout = () => {
   const [selectedAddressId, setselectedAddressId] = useState<string | null>(
     null,
   );
+  const [selectedPaymentMethod, setSelectedPaymentMethod] =
+    useState<PaymentMethod>("cod");
 
   const [loadingAddress, setLoadingAddress] = useState(true);
   const [loadingCod, setLoadingCod] = useState(false);
@@ -158,6 +160,61 @@ const Checkout = () => {
   };
 
   const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY);
+
+  const placeCashOnDeliveryOrder = async () => {
+    try {
+      const order = await createOrder("cod");
+      if (!order) return;
+
+      toast.success("Order placed with Cash on Delivery 🎉");
+      navigate(order.orderId ? `/order/${order.orderId}` : "/orders");
+    } catch (error) {
+      console.log(error);
+      toast.error("Failed to place COD order");
+    }
+  };
+
+
+
+  const paymentMethods = useMemo(
+    () => [
+      {
+        key: "razorpay" as PaymentMethod,
+        label: "Razorpay",
+        cta: "Pay with Razorpay",
+        className: "bg-[#2D7FF9] hover:bg-blue-500",
+      },
+      {
+        key: "stripe" as PaymentMethod,
+        label: "Stripe",
+        cta: "Pay with Stripe",
+        className: "bg-black hover:bg-gray-800",
+      },
+      {
+        key: "cod" as PaymentMethod,
+        label: "Cash on Delivery",
+        cta: "Place COD Order",
+        className: "bg-[#e23744] hover:bg-red-600",
+      },
+    ],
+    []
+  );
+
+  const isAnyPaymentLoading = loadingRazorpay || loadingStripe || creatingOrder;
+
+  const placeOrderByMethod = async () => {
+    if (selectedPaymentMethod === "razorpay") {
+      await payWithRazorpay();
+      return;
+    }
+
+    if (selectedPaymentMethod === "stripe") {
+      await payWithStripe();
+      return;
+    }
+
+    await placeCashOnDeliveryOrder();
+  };
 
   const payWithStripe = async () => {
     try {
@@ -301,42 +358,41 @@ const Checkout = () => {
       <div className="rounded-xl bg-white p-4 shadow-sm space-y-3">
         <h3 className="font-semibold">Payment Method</h3>
 
-        <button
-          disabled={
-            !selectedAddressId ||
-            loadingRazorpay ||
-            loadingStripe ||
-            loadingCod ||
-            creatingOrder
-          }
-          onClick={payWithRazorpay}
-          className="flex w-full items-center justify-center gap-2 rounded-lg bg-[#2D7FF9] py-3 text-sm font-semibold text-white hover:bg-blue-500 disabled:opacity-50"
-        >
-          {loadingRazorpay ? (
-            <BiLoader size={18} className="animate-spin" />
-          ) : (
-            <BiCreditCard size={18} />
-          )}
-          Pay With Razorpay
-        </button>
+        {paymentMethods.map((method) => (
+          <label
+            key={method.key}
+            className={`flex items-center gap-3 rounded-lg border p-3 cursor-pointer transition ${
+              selectedPaymentMethod === method.key
+                ? "border-[#e23744] bg-red-50"
+                : "hover:bg-gray-50"
+            }`}
+          >
+            <input
+              type="radio"
+              name="payment-method"
+              checked={selectedPaymentMethod === method.key}
+              onChange={() => setSelectedPaymentMethod(method.key)}
+            />
+            {method.key === "cod" ? <BiMoney size={18} /> : <BiCreditCard size={18} />}
+            <span className="text-sm font-medium">{method.label}</span>
+          </label>
+        ))}
 
         <button
-          disabled={
-            !selectedAddressId ||
-            loadingRazorpay ||
-            loadingStripe ||
-            loadingCod ||
-            creatingOrder
-          }
-          onClick={payWithStripe}
-          className="flex w-full items-center justify-center gap-2 rounded-lg bg-black py-3 text-sm font-semibold text-white hover:bg-gray-800 disabled:opacity-50"
-        >
-          {loadingStripe ? (
+          disabled={!selectedAddressId || isAnyPaymentLoading}
+          onClick={placeOrderByMethod}
+          className={`flex w-full items-center justify-center gap-2 rounded-lg py-3 text-sm font-semibold text-white disabled:opacity-50 ${
+            paymentMethods.find((m) => m.key === selectedPaymentMethod)?.className
+          }`}
+          >
+          {isAnyPaymentLoading ? (
             <BiLoader size={18} className="animate-spin" />
+            ) : selectedPaymentMethod === "cod" ? (
+            <BiMoney size={18} />
           ) : (
             <BiCreditCard size={18} />
           )}
-          Pay With Stripe
+           {paymentMethods.find((m) => m.key === selectedPaymentMethod)?.cta}
         </button>
         <button
           disabled={
