@@ -76,7 +76,7 @@ const Checkout = () => {
 
   const grandTotal = subTotal + deliveryFee + platformFee;
 
-  const createOrder = async (paymentMethod: "razorpay" | "stripe") => {
+  const createOrder = async (paymentMethod: "razorpay" | "stripe" | "cod") => {
     if (!selectedAddressId) return null;
 
     setCreatingOrder(true);
