@@ -5,34 +5,13 @@ import { CgShoppingCart } from "react-icons/cg";
 import { BiMapPin, BiSearch } from "react-icons/bi";
 
 const Navbar = () => {
-  const { isAuth, city, quauntity, setLocation } = useAppData();
+  const { isAuth, city, quauntity } = useAppData();
   const currLocation = useLocation();
 
   const isHomePage = currLocation.pathname === "/";
 
   const [searchParams, setSearchParams] = useSearchParams();
   const [search, setSearch] = useState(searchParams.get("search") || "");
-  const [manualLocation, setManualLocation] = useState("");
-
-  const updateManualLocation = async () => {
-    if (!manualLocation.trim()) return;
-    try {
-      const res = await fetch(
-        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(
-          manualLocation
-        )}&limit=1`
-      );
-      const data = await res.json();
-      if (!data?.[0]) return;
-      setLocation({
-        latitude: Number(data[0].lat),
-        longitude: Number(data[0].lon),
-        formattedAddress: data[0].display_name,
-      });
-    } catch (error) {
-      console.log(error);
-    }
-  };
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -79,19 +58,10 @@ const Navbar = () => {
       {isHomePage && (
         <div className="border-t px-4 py-3">
           <div className="mx-auto flex max-w-7xl items-center rounded-lg border shadow-sm">
-           <div className="flex items-center gap-2 px-3 border-r text-gray-700">
-            <BiMapPin className="h-4 w-4 text-[#E23744]" />
-            <span className="text-sm truncate max-w-35">{city}</span>
-          </div>
-          <input
-            type="text"
-            placeholder="Set location manually"
-            value={manualLocation}
-            onChange={(e) => setManualLocation(e.target.value)}
-            onBlur={updateManualLocation}
-            onKeyDown={(e) => e.key === "Enter" && updateManualLocation()}
-            className="w-44 border-r px-2 py-2 text-xs outline-none"
-          />
+            <div className="flex items-center gap-2 px-3 border-r text-gray-700">
+              <BiMapPin className="h-4 w-4 text-[#E23744]" />
+              <span className="text-sm truncate max-w-35">{city}</span>
+            </div>
             <div className="flex flex-1 items-center gap-2 px-3">
               <BiSearch className="h-4 w-4 text-gray-400" />
               <input

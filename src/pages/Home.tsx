@@ -50,7 +50,6 @@ const Home = () => {
           params: {
             latitude: location.latitude,
             longitude: location.longitude,
-            radius: 10000,
             search,
           },
           headers: {

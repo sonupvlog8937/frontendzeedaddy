@@ -124,7 +124,6 @@ export const AppProvider = ({ children }: AppProviderProps) => {
         setUser,
         user,
         location,
-        setLocation,
         loadingLocation,
         city,
         cart,

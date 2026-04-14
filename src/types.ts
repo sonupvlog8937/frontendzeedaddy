@@ -22,7 +22,6 @@ export interface AppContextType {
   setIsAuth: React.Dispatch<React.SetStateAction<boolean>>;
   setLoading: React.Dispatch<React.SetStateAction<boolean>>;
   location: LocationData | null;
-  setLocation: React.Dispatch<React.SetStateAction<LocationData | null>>;
   loadingLocation: boolean;
   city: string;
   cart: ICart[] | null;
@@ -108,7 +107,6 @@ export interface IOrder {
     | "accepted"
     | "preparing"
     | "ready_for_rider"
-    | "rider_selected"
     | "rider_assigned"
     | "picked_up"
     | "delivered"

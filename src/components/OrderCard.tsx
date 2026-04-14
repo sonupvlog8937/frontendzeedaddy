@@ -10,12 +10,6 @@ interface props {
   onStatusUpdate?: () => void;
 }
 
-interface RiderOption {
-  _id: string;
-  phoneNumber: string;
-  userId: string;
-}
-
 const statusColor = (status: string) => {
   switch (status) {
     case "placed":
@@ -26,8 +20,6 @@ const statusColor = (status: string) => {
       return "bg-blue-100 text-blue-700";
     case "ready_for_rider":
       return "bg-indigo-100 text-indigo-700";
-      case "rider_selected":
-      return "bg-cyan-100 text-cyan-700";
     case "picked_up":
       return "bg-purple-100 text-purple-700";
     case "delivered":
@@ -40,8 +32,6 @@ const statusColor = (status: string) => {
 const OrderCard = ({ order, onStatusUpdate }: props) => {
   const [loading, setLoading] = useState(false);
   const [retryVisible, setRetryVisible] = useState(false);
-  const [riders, setRiders] = useState<RiderOption[]>([]);
-  const [selectedRider, setSelectedRider] = useState("");
 
   const actions = ORDER_ACTIONS[order.status] || [];
   const canProcessOrder =
@@ -59,28 +49,6 @@ const OrderCard = ({ order, onStatusUpdate }: props) => {
 
     return () => clearTimeout(timer);
   }, [order.status]);
-
-  useEffect(() => {
-    const loadRiders = async () => {
-      if (order.status !== "ready_for_rider") return;
-      try {
-        const { data } = await axios.get(
-          `${restaurantService}/api/order/${order._id}/nearby-riders`,
-          {
-            headers: {
-              Authorization: `Bearer ${localStorage.getItem("token")}`,
-            },
-          }
-        );
-        setRiders(data.riders || []);
-      } catch (error) {
-        setRiders([]);
-      }
-    };
-
-    loadRiders();
-  }, [order._id, order.status]);
-
 
   const updateStatus = async (status: string) => {
     try {
@@ -100,28 +68,6 @@ const OrderCard = ({ order, onStatusUpdate }: props) => {
       onStatusUpdate?.();
     } catch (error: any) {
       toast.error(error.response.data.message);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const assignRider = async () => {
-    if (!selectedRider) return toast.error("Please select rider");
-    try {
-      setLoading(true);
-      await axios.put(
-        `${restaurantService}/api/order/${order._id}/assign-rider`,
-        { riderId: selectedRider },
-        {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem("token")}`,
-          },
-        }
-      );
-      toast.success("Rider selected. Waiting for rider confirmation.");
-      onStatusUpdate?.();
-    } catch (error: any) {
-      toast.error(error?.response?.data?.message || "Unable to assign rider");
     } finally {
       setLoading(false);
     }
@@ -171,32 +117,6 @@ const OrderCard = ({ order, onStatusUpdate }: props) => {
           ))}
         </div>
       )}
-
-      {order.status === "ready_for_rider" && (
-        <div className="space-y-2 pt-1">
-          <select
-            value={selectedRider}
-            onChange={(e) => setSelectedRider(e.target.value)}
-            className="w-full rounded-lg border px-3 py-2 text-sm"
-          >
-            <option value="">Select rider</option>
-            {riders.map((rider) => (
-              <option key={rider._id} value={rider._id}>
-                Rider {rider._id.slice(-5)} • {rider.phoneNumber}
-              </option>
-            ))}
-          </select>
-
-          <button
-            className="w-full rounded-lg bg-black py-2 text-xs font-semibold text-white disabled:opacity-50"
-            disabled={loading || riders.length === 0}
-            onClick={assignRider}
-          >
-            Assign rider
-          </button>
-        </div>
-      )}
-
 
       {order.status === "ready_for_rider" && retryVisible && (
         <div className="pt-2">

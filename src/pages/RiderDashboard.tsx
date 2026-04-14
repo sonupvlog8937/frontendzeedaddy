@@ -72,10 +72,10 @@ const RiderDashboard = () => {
       }, 10000);
     };
 
-    socket.on("order:rider_selected", onOrderAvailable);
+    socket.on("order:available", onOrderAvailable);
 
     return () => {
-      socket.off("order:rider_selected", onOrderAvailable);
+      socket.off("order:available", onOrderAvailable);
     };
   }, [socket, audioUnlocked]);
 
