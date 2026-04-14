@@ -10,22 +10,15 @@ interface Props {
 
 const RiderOrderRequest = ({ orderId, onAccepted }: Props) => {
   const [accepting, setAccepting] = useState(false);
-  const [secondsLeft, setSecondsLeft] = useState(10);
+  const [secondsLeft, setSecondsLeft] = useState(120);
 
   useEffect(() => {
     const interval = setInterval(() => {
-      setSecondsLeft((prev) => {
-        if (prev <= 1) {
-          clearInterval(interval);
-          onAccepted();
-          return 0;
-        }
-        return prev - 1;
-      });
+      setSecondsLeft((prev) => (prev <= 1 ? 0 : prev - 1));
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [onAccepted]);
+  }, []);
 
   const acceptOrder = async () => {
     try {
@@ -55,7 +48,7 @@ const RiderOrderRequest = ({ orderId, onAccepted }: Props) => {
       </p>
 
       <p className="text-center text-xs font-semibold text-green-600">
-        New Delivery Request
+        Restaurant selected you for this order
       </p>
 
       <p className="text-xs text-gray-600">
@@ -67,7 +60,7 @@ const RiderOrderRequest = ({ orderId, onAccepted }: Props) => {
         onClick={acceptOrder}
         className="w-full rounded-lg bg-green-600 py-2 text-sm font-semibold text-white hover:bg-green-700 disabled:opacity-50"
       >
-        {accepting ? "Accepting..." : "Accept order"}
+        {accepting ? "Confirming..." : "Confirm order"}
       </button>
     </div>
   );
