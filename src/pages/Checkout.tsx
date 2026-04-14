@@ -6,7 +6,6 @@ import { useNavigate } from "react-router-dom";
 import type { ICart, IMenuItem, IRestaurant } from "../types";
 import toast from "react-hot-toast";
 import { BiCreditCard, BiLoader } from "react-icons/bi";
-import { loadStripe } from "@stripe/stripe-js";
 
 interface Address {
   _id: string;
@@ -26,7 +25,6 @@ const Checkout = () => {
   const [loadingAddress, setLoadingAddress] = useState(true);
 
   const [loadingRazorpay, setLoadingRazorpay] = useState(false);
-  const [loadingStripe, setLoadingStripe] = useState(false);
   const [loadingCOD, setLoadingCOD] = useState(false);
   const [creatingOrder, setCreatingOrder] = useState(false);
 
@@ -169,44 +167,6 @@ const Checkout = () => {
     }
   };
 
-  const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY);
-
-  const payWithStripe = async () => {
-    try {
-      setLoadingStripe(true);
-      const order = await createOrder("stripe");
-      if (!order) return;
-
-      const { orderId } = order;
-
-      try {
-        await stripePromise;
-
-        const { data } = await axios.post(
-          `${utilsService}/api/payment/stripe/create`,
-          { orderId },
-          {
-            headers: {
-              Authorization: `Bearer ${localStorage.getItem("token")}`,
-            },
-          }
-        );
-
-        if (data.url) {
-          window.location.href = data.url;
-        } else {
-          toast.error("failed to create payment session");
-        }
-      } catch (error) {
-        toast.error("Payment Failed");
-      }
-    } catch (error) {
-      console.log(error);
-      toast.error("Payment failed");
-    } finally {
-      setLoadingStripe(false);
-    }
-  };
   const payWithCOD = async () => {
     try {
       setLoadingCOD(true);
