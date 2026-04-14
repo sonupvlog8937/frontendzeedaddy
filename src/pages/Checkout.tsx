@@ -111,9 +111,15 @@ const Checkout = () => {
 
       const { orderId, amount } = order;
 
-      const { data } = await axios.post(`${utilsService}/api/payment/create`, {
-        orderId,
-      });
+      const { data } = await axios.post(
+        `${utilsService}/api/payment/create`,
+        { orderId },
+        {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
+        }
+      );
 
       const { razorpayOrderId, key } = data;
 
@@ -127,12 +133,20 @@ const Checkout = () => {
 
         handler: async (response: any) => {
           try {
-            await axios.post(`${utilsService}/api/payment/verify`, {
-              razorpay_order_id: response.razorpay_order_id,
-              razorpay_payment_id: response.razorpay_payment_id,
-              razorpay_signature: response.razorpay_signature,
-              orderId,
-            });
+            await axios.post(
+              `${utilsService}/api/payment/verify`,
+              {
+                razorpay_order_id: response.razorpay_order_id,
+                razorpay_payment_id: response.razorpay_payment_id,
+                razorpay_signature: response.razorpay_signature,
+                orderId,
+              },
+              {
+                headers: {
+                  Authorization: `Bearer ${localStorage.getItem("token")}`,
+                },
+              }
+            );
 
             toast.success("Payment successfull 🎉");
             navigate("/paymentsuccess/" + response.razorpay_payment_id);
@@ -170,8 +184,11 @@ const Checkout = () => {
 
         const { data } = await axios.post(
           `${utilsService}/api/payment/stripe/create`,
+          { orderId },
           {
-            orderId,
+            headers: {
+              Authorization: `Bearer ${localStorage.getItem("token")}`,
+            },
           }
         );
 
@@ -301,7 +318,7 @@ const Checkout = () => {
           onClick={payWithRazorpay}
           className="flex w-full items-center justify-center gap-2 rounded-lg bg-[#2D7FF9] py-3 text-sm font-semibold text-white hover:bg-blue-500 disabled:opacity-50"
         >
-          {loadingRazorpay ? (
+          {loadingStripe ? (
             <BiLoader size={18} className="animate-spin" />
           ) : (
             <BiCreditCard size={18} />
